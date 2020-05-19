@@ -1,0 +1,67 @@
+<template>
+  <image class="avatar" src="{{model.female_avatar}}"></image>
+  <view class="meta">
+    <view class="field-top">{{model.female_name}}</view>
+    <view class="field-bottom">配种日期: {{model.breeding_at}}</view>
+  </view>
+  <span class="day" wx:if="{{!model.is_break}}">
+    <text wx:if="{{model.countdown == 0}}">今日</text>
+    <text wx:if="{{model.countdown > 0}}">{{model.countdown}} 天</text>
+    <text wx:if="{{model.countdown < 0}}" class="danger">{{model.countdown*-1}} 天</text>
+  </span>
+  <span class="break" wx:else>
+    <image src="../assets/images/birthday-and-party.svg"></image>
+  </span>
+</template>
+
+<script>
+import wepy from 'wepy'
+
+export default class Card extends wepy.component {
+  props = {
+    model: {}
+  }
+
+  data = {}
+
+  onLoad() {
+  }
+
+  methods = {}
+}
+</script>
+
+<style lang="scss" scoped>
+  .day {
+    text {
+      top: -12px;
+      color: #71c9ce;
+      position: relative;
+      &::before {
+        left: 50%;
+        width: auto;
+        bottom: -18px;
+        content: 'Waiting';
+        line-height: 1;
+        color: #ffffff;
+        font-size: 10px;
+        padding: 3px 4px;
+        font-weight: 500;
+        position: absolute;
+        border-radius: 4px;
+        background: #a6e3e9;
+        transform: translateX(-50%);
+      }
+      &.danger {
+        color: #eb6383;
+        &::before {
+          content: 'Due';
+          background: #fa9191;
+        }
+      }
+    }
+  }
+  .break {
+    image {}
+  }
+</style>

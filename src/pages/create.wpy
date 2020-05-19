@@ -1,0 +1,245 @@
+<template>
+  <view>
+    <view class="section">
+      <view>新增记录
+        <text> / Create egg</text>
+      </view>
+      <view>新增一条孕期记录</view>
+    </view>
+    <view class="form">
+      <view class="field">
+        <view class="label">母猫名称:</view>
+        <view class="value">
+          <input type="text" @change="onFemaleChange">
+        </view>
+      </view>
+      <view class="field">
+        <view class="label">公猫名称:</view>
+        <view class="value">
+          <input type="text" @change="onMaleChange">
+        </view>
+      </view>
+      <view class="field">
+        <view class="label">配种日期:</view>
+        <view class="value">
+          <picker mode="date" @change="breedingChange" end="{{today}}">
+            <image src="../assets/images/time.svg"></image>
+            <text>{{ difference }}</text>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <view class="confirm">
+      <view class="btn" @tap="onConfirm">
+        <image src="../assets/images/egg.svg"></image>
+        <text>保存记录</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import request from '@/utils/request'
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '新增记录'
+  }
+
+  components = {}
+
+  mixins = []
+
+  data = {
+    today: null,
+    difference: null,
+    model: {
+      male_name: null,
+      female_name: null,
+      breeding_at: null
+    }
+  }
+
+  computed = {}
+
+  methods = {
+    breedingChange(e) {
+      this.model.breeding_at = e.detail.value
+      this.dateDifference()
+    },
+
+    async onConfirm() {
+      await wepy.showLoading()
+      await request('/eggs', this.model).post()
+      await wepy.hideLoading()
+      await wepy.showToast({
+        title: '新增记录成功',
+        duration: 1000,
+        success: function() {
+          setTimeout(function() {
+            wx.navigateBack()
+          }, 1000)
+        }
+      })
+    },
+    onFemaleChange(e) {
+      this.model.female_name = e.detail.value
+    },
+    onMaleChange(e) {
+      this.model.male_name = e.detail.value
+    }
+  }
+
+  events = {}
+
+  dateDifference() {
+    var d1 = Date.parse(this.model.breeding_at)
+    var d2 = Date.parse(this.today)
+    var dateSpan = d2 - d1
+    dateSpan = Math.abs(dateSpan)
+    var difference = Math.floor(dateSpan / (24 * 3600 * 1000))
+
+    if (difference === 0) {
+      this.difference = '今天'
+    } else {
+      this.difference = difference + ' 天前'
+    }
+  }
+
+  onLoad() {
+    var timestamp = Date.parse(new Date())
+    var date = new Date(timestamp)
+    var Y = date.getFullYear()
+    var M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1)
+    var D = date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+    this.today = Y + '-' + M + '-' + D
+    this.model.breeding_at = this.today
+    this.dateDifference()
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+  .section {
+    padding-left: 12px;
+
+    view {
+      text {
+        color: #a4adb7;
+        display: inline;
+        font-size: 10px;
+        margin-left: 2px;
+        word-spacing: 6px;
+      }
+    }
+
+    view:first-child {
+      display: block;
+      color: #101346;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    view:last-child {
+      color: #a4adb7;
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+  }
+
+  .confirm {
+    margin-top: 24px;
+    text-align: center;
+
+    .btn {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px 32px;
+      border-radius: 20px;
+      background: #71c9ce;
+      display: inline-block;
+      box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #71c9ce;
+
+      image {
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        vertical-align: -3.5px;
+      }
+    }
+  }
+
+  .form {
+    padding: 16px;
+    margin-top: 24px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 1px 0px;
+
+    .field {
+      margin-bottom: 28px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .label {
+        color: #101346;
+        font-size: 14px;
+        font-weight: 500;
+        padding-left: 10px;
+        position: relative;
+        margin-bottom: 12px;
+
+        &:before {
+          left: 0;
+          top: 50%;
+          width: 3px;
+          content: '';
+          height: 80%;
+          border-radius: 3px;
+          position: absolute;
+          background: #71c9ce;
+          transform: translateY(-50%);
+          box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #e3fdfd;
+        }
+      }
+
+      .value {
+        input {
+          padding: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          border-radius: 3px;
+          border: 1px solid #e7eef7;
+        }
+
+        picker {
+          padding: 6px 12px;
+          border-radius: 6px;
+          background: #f5f7fd;
+          display: inline-block;
+
+          text {
+            color: #57b59a;
+            font-size: 14px;
+            font-weight: 500;
+          }
+
+          image {
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+            vertical-align: -4.5px;
+          }
+        }
+      }
+    }
+  }
+</style>

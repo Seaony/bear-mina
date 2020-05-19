@@ -1,0 +1,565 @@
+<template>
+  <view>
+    <view class="all-panel">
+      <view class="panel" wx:if="{{week.length}}">
+        <view class="section">
+          <view>本周
+            <text> / Current</text>
+          </view>
+          <view>有 {{week.length}} 只猫会在本周内进入预产期</view>
+        </view>
+        <view>
+          <repeat for="{{week}}">
+            <view class="card" @tap="showModal({{item}})">
+              <egg-card :model="item"></egg-card>
+            </view>
+          </repeat>
+        </view>
+      </view>
+
+      <view class="panel" wx:if="{{other.length}}">
+        <view class="section">
+          <view>其他
+            <text> / Other</text>
+          </view>
+          <view>有 {{other.length}} 只猫等待进入预产期</view>
+        </view>
+        <view>
+          <repeat for="{{other}}">
+            <view class="card" @tap="showModal({{item}})">
+              <egg-card :model="item"></egg-card>
+            </view>
+          </repeat>
+        </view>
+      </view>
+
+      <view class="panel" wx:if="{{history.length}}">
+        <view class="section">
+          <view>历史
+            <text> / History</text>
+          </view>
+          <view>共有 {{history.length}} 只蛋已经破壳啦~</view>
+        </view>
+        <view>
+          <repeat for="{{history}}">
+            <view class="card" @tap="showModal({{item}})">
+              <egg-card :model="item"></egg-card>
+            </view>
+          </repeat>
+        </view>
+      </view>
+
+      <view class="empty" wx:if="{{!history.length && !other.length && !week.length}}">
+        <image src="../assets/images/children.svg"></image>
+        <view>您还未新增任何记录~</view>
+      </view>
+
+      <view class="addation">
+        <navigator url="/pages/create" class="btn">
+          <text>新增记录</text>
+          <image src="../assets/images/next1.svg"></image>
+        </navigator>
+      </view>
+    </view>
+    <view class="modal" catchtouchmove="true" wx:if="{{modal}}" @tap="closeModal"></view>
+    <view wx:if="{{modal}}" class="drawer">
+      <view class="drawer-header">
+        <image class="avatar" src="{{modal.female_avatar}}"></image>
+        <text>{{modal.female_name}}&{{modal.male_name}}</text>
+        <view class="right">
+          <image src="../assets/images/error.svg" @tap="closeModal" class="close"></image>
+        </view>
+      </view>
+      <view class="drawer-body">
+
+        <view wx:if="{{!modal.is_break}}">
+          <view wx:if="{{modal.countdown>=0}}">
+            <view class="desc">距离{{modal.female_name}}生产预计还有</view>
+            <view class="day">
+              <text class="t">{{modal.countdown}}</text>
+              <text class="m">天</text>
+            </view>
+            <view class="cracked_at">预计: {{modal.cracked_at}}生产</view>
+          </view>
+          <view wx:else="{{modal.countdown<0}}">
+            <view class="desc">距离{{modal.female_name}}生产已逾期</view>
+            <view class="day danger">
+              <text class="t">{{modal.countdown*-1}}</text>
+              <text class="m">天</text>
+            </view>
+            <view class="cracked_at">预计: {{modal.cracked_at}}生产</view>
+          </view>
+
+        </view>
+
+        <view wx:if="{{modal.is_break}}">
+          <view class="desc">小生命已经破壳而出啦~，总孕期为</view>
+          <view class="day">
+            <text class="t">{{modal.during}}</text>
+            <text class="m">天</text>
+          </view>
+          <view class="cracked_at">{{modal.breeding_at}} - {{modal.cracked_at}}</view>
+        </view>
+
+
+        <view class="tips">
+          <view class="tips_header">
+            <image src="../assets/images/education.svg"></image>
+            <text>破壳小提示</text>
+          </view>
+          <view class="tips_body">{{modal.tips}}</view>
+        </view>
+
+        <view class="actions">
+          <view class="trash" @tap="delCurrent"><image src="../assets/images/can.svg"></image> 删除</view>
+          <view class="right">
+            <view class="done" @tap="doneCurrent">已经破壳啦 <image src="../assets/images/next.svg"></image></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import request from '@/utils/request'
+import Card from '@/components/EggCard'
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '破壳日'
+  }
+
+  components = {
+    'egg-card': Card
+  }
+
+  mixins = []
+
+  data = {
+    modal: null,
+    week: [],
+    other: [],
+    history: []
+  }
+
+  computed = {}
+
+  methods = {
+    showModal(modal) {
+      this.modal = modal
+      this.$apply()
+    },
+    closeModal() {
+      this.modal = null
+      this.$apply()
+    },
+    async delCurrent () {
+      await request(`/eggs/${this.modal.id}`).delete()
+      this.modal = null
+      this.$apply()
+      await wepy.showToast({
+        title: '删除记录成功',
+        duration: 1000,
+        success: () => {
+          setTimeout(async () => {
+            await this.getItems()
+          }, 1000)
+        }
+      })
+    },
+    async doneCurrent () {
+      await request(`/eggs/${this.modal.id}/done`).put()
+      this.modal = null
+      this.$apply()
+      await wepy.showToast({
+        title: '破壳成功啦~',
+        duration: 1000,
+        success: () => {
+          setTimeout(async () => {
+            await this.getItems()
+          }, 1000)
+        }
+      })
+    }
+  }
+
+  async getItems() {
+    await wx.showLoading()
+    let data = await request('/eggs').get()
+    this.week = data.week
+    this.other = data.other
+    this.longer = data.longer
+    this.history = data.history
+    this.$apply()
+    await wx.hideLoading()
+  }
+
+  events = {}
+
+  async onLoad() {
+    if (!wx.getStorageSync('token')) {
+      let { code } = await wx.login()
+      let { token } = await request('/auth/login', { code }).post()
+      wx.setStorageSync('token', token)
+    }
+    await this.getItems()
+  }
+
+  async onReachBottom() {
+    await this.getItems()
+  }
+}
+</script>
+
+<style lang="scss">
+  .modal {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    opacity: .5;
+    z-index: 1000;
+    display: block;
+    position: fixed;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .all-panel {
+    padding-bottom: 120px;
+  }
+
+  .drawer {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    z-index: 1100;
+    position: fixed;
+    overflow: scroll;
+    overflow: hidden;
+    animation: up .3s;
+    background: #ffffff;
+    box-sizing: border-box;
+    padding: 0px 24px 24px;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    box-shadow: 0 -3px 3px rgba(26, 26, 26, .1);
+
+    .drawer-header {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      display: flex;
+      position: sticky;
+      align-items: center;
+      background: #ffffff;
+      margin-bottom: 6px;
+
+      .avatar {
+        width: 24px;
+        height: 24px;
+        padding: 4px;
+        margin-right: 6px;
+        background: #e3fdfd;
+        border-radius: 50px;
+
+      }
+
+      text {
+        color: #34495e;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .right {
+        flex: auto;
+        text-align: right;
+      }
+
+      .close {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .drawer-body {
+      .desc {
+        color: #a4adb7;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .cracked_at {
+        color: #a4adb7;
+        font-size: 12px;
+        font-weight: 500;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .day {
+        margin: 16px auto 0;
+        text-align: center;
+
+        .t {
+          color: #71c9ce;
+          font-size: 64px;
+          font-weight: bold;
+          text-align: center;
+        }
+
+        .m {
+          color: #a4adb7;
+          font-size: 13px;
+          font-weight: 500;
+          margin-left: 6px;
+          vertical-align: 3px;
+        }
+
+        &.danger {
+          .t {
+            color: #eb6383;
+          }
+        }
+      }
+
+      .tips {
+        margin-bottom: 24px;
+
+        .tips_header {
+          display: flex;
+          padding-left: 6px;
+          margin-bottom: 6px;
+          align-items: center;
+
+          image {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+          }
+
+          text {
+            color: #34495e;
+            font-size: 14px;
+            font-weight: bold;
+          }
+        }
+
+        .tips_body {
+          padding: 12px;
+          color: #4d555f;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.75;
+          border-radius: 6px;
+          background: #f8f8f8;
+          display: inline-block;
+          word-break: break-all;
+        }
+      }
+
+      .actions {
+        display: flex;
+        padding: 0 12px;
+        align-items: center;
+
+        view {
+          display: inline-block;
+        }
+
+        .trash {
+          color: #eb6383;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .right {
+          flex: auto;
+          text-align: right;
+          .done {
+            color: #71c9ce;
+            font-size: 12px;
+            font-weight: 600;
+          }
+        }
+
+        image {
+          width: 12px;
+          height: 12px;
+          vertical-align: -1.5px;
+        }
+      }
+    }
+  }
+
+  .panel {
+    margin-top: 32px;
+  }
+
+  .section {
+    padding-left: 12px;
+
+    view {
+      text {
+        color: #a4adb7;
+        display: inline;
+        font-size: 10px;
+        margin-left: 2px;
+        word-spacing: 6px;
+      }
+    }
+
+    view:first-child {
+      display: block;
+      color: #34495e;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    view:last-child {
+      color: #a4adb7;
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+  }
+
+  .panel:first-child {
+    margin-top: 0;
+  }
+
+  .card {
+    padding: 12px;
+    display: flex;
+    position: relative;
+    align-items: center;
+    border-bottom: 1px dashed #f5f7fd;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 1px 0px;
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      padding: 8px;
+      background: #e3fdfd;
+      border-radius: 50px;
+    }
+
+    .meta {
+      margin-left: 12px;
+
+      .field-top {
+        color: #34495e;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 3px;
+      }
+
+      .field-bottom {
+        color: #a4adb7;
+        font-size: 11px;
+        font-weight: 500;
+      }
+    }
+
+    .day {
+      top: 50%;
+      right: 16px;
+      color: #71c9ce;
+      font-size: 18px;
+      font-weight: bold;
+      position: absolute;
+      transform: translateY(-50%);
+    }
+
+    .break {
+      top: 50%;
+      right: 16px;
+      position: absolute;
+      transform: translateY(-50%);
+      image {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+
+  .card:first-child {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  .card:last-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  .history {
+    color: #a4adb7;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .addation {
+    left: 0;
+    width: 100%;
+    position: fixed;
+    bottom: 2.25rem;
+    text-align: center;
+
+    .btn {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px 32px;
+      border-radius: 20px;
+      background: #71c9ce;
+      display: inline-block;
+      box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #71c9ce;
+
+      image {
+        width: 12px;
+        height: 12px;
+        margin-left: 4px;
+        vertical-align: -1.5px;
+      }
+    }
+  }
+
+  .empty {
+    padding: 1.25rem;
+    text-align: center;
+    box-sizing: border-box;
+    image {
+      width: 84px;
+      height: 84px;
+      padding-top: 2.25rem;
+      display: inline-block;
+    }
+
+    view {
+      color: #a4adb7;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 12px;
+      vertical-align: 3px;
+    }
+  }
+
+  @keyframes up {
+    0% {
+      transform: translateY(100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+</style>
