@@ -1,6 +1,5 @@
-import wepy from '@wepy/core'
-
-const apiURL = 'http://egg.test/api'
+// const apiURL = 'http://egg.test/api'
+const apiURL = 'https://bear.todev.ink/api'
 
 class WxRequest {
   constructor(config) {
@@ -37,7 +36,6 @@ class WxRequest {
   }
 
   request() {
-    wx.hideLoading()
     const options = this.defaultOptions,
       that = this
     return new Promise((resolve, reject) => {
@@ -49,9 +47,7 @@ class WxRequest {
             .then((data) => resolve(data))
             .catch((error) => reject(error))
           },
-          complete: function(res) {
-            wx.hideLoading()
-          }
+          complete: function(res) {}
         })
       )
     })
@@ -59,6 +55,9 @@ class WxRequest {
 
   success(result) {
     return new Promise((resolve, reject) => {
+      if (result.statusCode === 401) {
+        wx.setStorageSync('token', null)
+      }
       if (result.statusCode >= 200 && result.statusCode < 400) {
         resolve(result.data)
       } else {

@@ -49,7 +49,7 @@
         </view>
       </view>
 
-      <view class="empty" wx:if="{{!history.length && !other.length && !week.length}}">
+      <view class="empty" wx:if="{{!history.length && !other.length && !week.length && init}}">
         <image src="../assets/images/children.svg"></image>
         <view>您还未新增任何记录~</view>
       </view>
@@ -111,9 +111,14 @@
         </view>
 
         <view class="actions">
-          <view class="trash" @tap="delCurrent"><image src="../assets/images/can.svg"></image> 删除</view>
+          <view class="trash" @tap="delCurrent">
+            <image src="../assets/images/can.svg"></image>
+            删除
+          </view>
           <view class="right">
-            <view class="done" @tap="doneCurrent">已经破壳啦 <image src="../assets/images/next.svg"></image></view>
+            <view class="done" @tap="doneCurrent">已经破壳啦
+              <image src="../assets/images/next.svg"></image>
+            </view>
           </view>
         </view>
       </view>
@@ -128,6 +133,7 @@ import Card from '@/components/EggCard'
 
 export default class Index extends wepy.page {
   config = {
+    enablePullDownRefresh: true,
     navigationBarTitleText: '破壳日'
   }
 
@@ -138,6 +144,7 @@ export default class Index extends wepy.page {
   mixins = []
 
   data = {
+    init: false,
     modal: null,
     week: [],
     other: [],
@@ -155,7 +162,7 @@ export default class Index extends wepy.page {
       this.modal = null
       this.$apply()
     },
-    async delCurrent () {
+    async delCurrent() {
       await request(`/eggs/${this.modal.id}`).delete()
       this.modal = null
       this.$apply()
@@ -169,7 +176,7 @@ export default class Index extends wepy.page {
         }
       })
     },
-    async doneCurrent () {
+    async doneCurrent() {
       await request(`/eggs/${this.modal.id}/done`).put()
       this.modal = null
       this.$apply()
@@ -185,30 +192,50 @@ export default class Index extends wepy.page {
     }
   }
 
-  async getItems() {
-    await wx.showLoading()
-    let data = await request('/eggs').get()
-    this.week = data.week
-    this.other = data.other
-    this.longer = data.longer
-    this.history = data.history
-    this.$apply()
-    await wx.hideLoading()
+  getItems() {
+    if (this.init) {
+      wx.showLoading()
+    }
+    request('/eggs').get().then(data => {
+      this.week = data.week
+      this.other = data.other
+      this.longer = data.longer
+      this.history = data.history
+      this.init = true
+      this.$apply()
+      wx.hideLoading()
+    })
   }
 
   events = {}
 
-  async onLoad() {
+  onLoad() {
+    wx.showLoading()
+    var self = this
     if (!wx.getStorageSync('token')) {
-      let { code } = await wx.login()
-      let { token } = await request('/auth/login', { code }).post()
-      wx.setStorageSync('token', token)
+      wx.login({
+        success(res) {
+          let code = res.code
+          request('/auth/login', { code }).post().then(({token}) => {
+            wx.setStorageSync('token', token)
+            self.getItems()
+          })
+        }
+      })
+    } else {
+      this.getItems()
     }
-    await this.getItems()
   }
 
-  async onReachBottom() {
-    await this.getItems()
+  onPullDownRefresh() {
+    this.getItems()
+    wx.stopPullDownRefresh()
+  }
+
+  onShow() {
+    if (this.init) {
+      this.getItems()
+    }
   }
 }
 </script>
@@ -381,6 +408,7 @@ export default class Index extends wepy.page {
         .right {
           flex: auto;
           text-align: right;
+
           .done {
             color: #71c9ce;
             font-size: 12px;
@@ -484,6 +512,7 @@ export default class Index extends wepy.page {
       right: 16px;
       position: absolute;
       transform: translateY(-50%);
+
       image {
         width: 32px;
         height: 32px;
@@ -538,6 +567,7 @@ export default class Index extends wepy.page {
     padding: 1.25rem;
     text-align: center;
     box-sizing: border-box;
+
     image {
       width: 84px;
       height: 84px;
