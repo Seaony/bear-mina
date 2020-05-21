@@ -62,7 +62,7 @@
       </view>
     </view>
     <view class="modal" catchtouchmove="true" wx:if="{{modal}}" @tap="closeModal"></view>
-    <view wx:if="{{modal}}" class="drawer">
+    <view wx:if="{{modal}}" class="drawer" catchtouchmove="true">
       <view class="drawer-header">
         <image class="avatar" src="{{modal.female_avatar}}"></image>
         <text>{{modal.female_name}}&{{modal.male_name}}</text>
