@@ -110,12 +110,12 @@
           <view class="tips_body">{{modal.tips}}</view>
         </view>
 
-        <view class="actions">
+        <view class="actions {{ modal.is_break ? 'center' : '' }}">
           <view class="trash" @tap="delCurrent">
             <image src="../assets/images/can.svg"></image>
             删除
           </view>
-          <view class="right">
+          <view class="right" wx:if="{{!modal.is_break}}">
             <view class="done" @tap="doneCurrent">已经破壳啦
               <image src="../assets/images/next.svg"></image>
             </view>
@@ -403,6 +403,10 @@ export default class Index extends wepy.page {
         display: flex;
         padding: 0 12px;
         align-items: center;
+
+        &.center {
+          justify-content: center;
+        }
 
         view {
           display: inline-block;
