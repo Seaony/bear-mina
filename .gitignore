@@ -3,3 +3,4 @@ dist
 weapp
 .DS_Store
 .wepycache
+.idea

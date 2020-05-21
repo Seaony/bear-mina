@@ -134,7 +134,7 @@ import Card from '@/components/EggCard'
 export default class Index extends wepy.page {
   config = {
     enablePullDownRefresh: true,
-    navigationBarTitleText: '破壳日'
+    navigationBarTitleText: '喵孕'
   }
 
   components = {
@@ -153,6 +153,13 @@ export default class Index extends wepy.page {
   }
 
   computed = {}
+
+  onShareAppMessage () {
+    return {
+      title: '',
+      imageUrl: 'https://cdn.765i.com/uploads/1590048984/jG81HjQwLgjDuMRfbDF8ezcxor9NhxAF.jpg'
+    }
+  }
 
   methods = {
     showModal(modal) {
