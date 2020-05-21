@@ -51,10 +51,10 @@
 
       <view class="empty" wx:if="{{!history.length && !other.length && !week.length && init}}">
         <image src="../assets/images/children.svg"></image>
-        <view>您还未新增任何记录~</view>
+        <view>您没有任何记录~</view>
       </view>
 
-      <view class="addation">
+      <view class="addation" wx:if="{{portals}}">
         <navigator url="/pages/create" class="btn">
           <text>新增记录</text>
           <image src="../assets/images/next1.svg"></image>
@@ -145,6 +145,7 @@ export default class Index extends wepy.page {
 
   data = {
     init: false,
+    portals: false,
     modal: null,
     week: [],
     other: [],
@@ -197,6 +198,7 @@ export default class Index extends wepy.page {
       wx.showLoading()
     }
     request('/eggs').get().then(data => {
+      this.portals = data.portals
       this.week = data.week
       this.other = data.other
       this.longer = data.longer
