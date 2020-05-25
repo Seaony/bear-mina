@@ -2,7 +2,8 @@
   <image class="avatar" src="{{model.female_avatar}}"></image>
   <view class="meta">
     <view class="field-top">{{model.female_name}}</view>
-    <view class="field-bottom">配种日期: {{model.breeding_at}}</view>
+    <view class="field-bottom" wx:if="{{!model.is_break}}">配种日期: {{model.breeding_at}}</view>
+    <view class="field-bottom" wx:else>破壳日期: {{model.cracked_at}}</view>
   </view>
   <span class="day" wx:if="{{!model.is_break}}">
     <text wx:if="{{model.countdown == 0}}">今日</text>

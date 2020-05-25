@@ -11,6 +11,7 @@ export default class extends wepy.app {
   config = {
     pages: [
       'pages/index',
+      'pages/break',
       'pages/create'
     ],
     window: {

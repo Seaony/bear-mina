@@ -54,6 +54,11 @@
         <view>您没有任何记录~</view>
       </view>
 
+      <button class="feedback" open-type="feedback">
+        <text>意见反馈</text>
+        <image src="../assets/images/next3.svg"></image>
+      </button>
+
       <view class="addation" wx:if="{{portals}}">
         <navigator url="/pages/create" class="btn">
           <text>新增记录</text>
@@ -116,8 +121,10 @@
             删除
           </view>
           <view class="right" wx:if="{{!modal.is_break}}">
-            <view class="done" @tap="doneCurrent">已经破壳啦
-              <image src="../assets/images/next.svg"></image>
+            <view>
+              <navigator url="{{ '/pages/break?id=' + modal.id }}" class="done">已经破壳啦
+                <image src="../assets/images/next.svg"></image>
+              </navigator>
             </view>
           </view>
         </view>
@@ -183,20 +190,6 @@ export default class Index extends wepy.page {
           }, 1000)
         }
       })
-    },
-    async doneCurrent() {
-      await request(`/eggs/${this.modal.id}/done`).put()
-      this.modal = null
-      this.$apply()
-      await wepy.showToast({
-        title: '破壳成功啦~',
-        duration: 1000,
-        success: () => {
-          setTimeout(async () => {
-            await this.getItems()
-          }, 1000)
-        }
-      })
     }
   }
 
@@ -250,6 +243,27 @@ export default class Index extends wepy.page {
 </script>
 
 <style lang="scss">
+
+  .feedback {
+    border: none;
+    color: #a4adb7;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    margin-top: 24px;
+
+    &::after {
+      display: none;
+    }
+
+    image {
+      width: 10px;
+      height: 10px;
+      margin-left: 4px;
+      vertical-align: -1px;
+    }
+  }
+
   .modal {
     left: 0;
     top: 0;
@@ -280,6 +294,7 @@ export default class Index extends wepy.page {
     background: #ffffff;
     box-sizing: border-box;
     padding: 0px 24px 24px;
+    padding-bottom: 36px;
     border-top-left-radius: 24px;
     border-top-right-radius: 24px;
     box-shadow: 0 -3px 3px rgba(26, 26, 26, .1);

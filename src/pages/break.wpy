@@ -1,28 +1,22 @@
 <template>
   <view>
     <view class="section">
-      <view>新增记录
-        <text> / Create a egg</text>
+      <view>破壳记录
+        <text> / Sprout</text>
       </view>
-      <view>新增一条孕期记录</view>
+      <view>小生命已经破壳而出了吗~</view>
     </view>
     <view class="form">
       <view class="field">
-        <view class="label">母猫名称:</view>
+        <view class="label">小猫数量 (选填):</view>
         <view class="value">
-          <input type="text" @change="onFemaleChange">
+          <input type="number" @change="onCatNumberChange">
         </view>
       </view>
       <view class="field">
-        <view class="label">公猫名称:</view>
+        <view class="label">破壳日期:</view>
         <view class="value">
-          <input type="text" @change="onMaleChange">
-        </view>
-      </view>
-      <view class="field">
-        <view class="label">配种日期:</view>
-        <view class="value">
-          <picker mode="date" @change="breedingChange" end="{{today}}">
+          <picker mode="date" @change="onBreakChange" end="{{today}}">
             <image src="../assets/images/time.svg"></image>
             <text>{{ difference }}</text>
           </picker>
@@ -32,8 +26,8 @@
 
     <view class="confirm">
       <view class="btn" @tap="onConfirm">
-        <image src="../assets/images/egg.svg"></image>
-        <text>保存记录</text>
+        <text>破壳啦</text>
+        <image src="../assets/images/birthday-and-party.svg"></image>
       </view>
     </view>
   </view>
@@ -45,7 +39,7 @@ import request from '@/utils/request'
 
 export default class Index extends wepy.page {
   config = {
-    navigationBarTitleText: '新增记录'
+    navigationBarTitleText: '破壳记录'
   }
 
   components = {}
@@ -53,49 +47,46 @@ export default class Index extends wepy.page {
   mixins = []
 
   data = {
+    id: null,
     today: null,
     difference: null,
     model: {
-      male_name: null,
-      female_name: null,
-      breeding_at: null
+      cat_number: null,
+      cracked_at: null
     }
   }
 
   computed = {}
 
   methods = {
-    breedingChange(e) {
-      this.model.breeding_at = e.detail.value
+    onBreakChange(e) {
+      this.model.cracked_at = e.detail.value
       this.dateDifference()
     },
 
     async onConfirm() {
       await wepy.showLoading()
-      await request('/eggs', this.model).post()
+      await request(`/eggs/${this.id}/cracked`, this.model).put()
       await wepy.hideLoading()
       await wepy.showToast({
-        title: '新增记录成功',
+        title: '破壳成功啦~',
         duration: 1000,
         success: function() {
           setTimeout(function() {
-            wx.navigateBack()
+            wx.redirectTo({url: '/pages/index'})
           }, 1000)
         }
       })
     },
-    onFemaleChange(e) {
-      this.model.female_name = e.detail.value
-    },
-    onMaleChange(e) {
-      this.model.male_name = e.detail.value
+    onCatNumberChange(e) {
+      this.model.cat_number = e.detail.value
     }
   }
 
   events = {}
 
   dateDifference() {
-    var d1 = Date.parse(this.model.breeding_at)
+    var d1 = Date.parse(this.model.cracked_at)
     var d2 = Date.parse(this.today)
     var dateSpan = d2 - d1
     dateSpan = Math.abs(dateSpan)
@@ -108,14 +99,15 @@ export default class Index extends wepy.page {
     }
   }
 
-  onLoad() {
+  onLoad(options) {
+    this.id = options.id
     var timestamp = Date.parse(new Date())
     var date = new Date(timestamp)
     var Y = date.getFullYear()
     var M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1)
     var D = date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
     this.today = Y + '-' + M + '-' + D
-    this.model.breeding_at = this.today
+    this.model.cracked_at = this.today
     this.dateDifference()
   }
 }
@@ -171,8 +163,8 @@ export default class Index extends wepy.page {
       image {
         width: 16px;
         height: 16px;
-        margin-right: 6px;
-        vertical-align: -3.5px;
+        margin-left: 6px;
+        vertical-align: -3px;
       }
     }
   }

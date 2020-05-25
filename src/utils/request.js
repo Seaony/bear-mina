@@ -1,4 +1,4 @@
-// const apiURL = 'http://egg.test/api'
+// const apiURL = 'http://bear-api.test/api'
 const apiURL = 'https://bear.todev.ink/api'
 
 class WxRequest {
