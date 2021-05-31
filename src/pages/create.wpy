@@ -20,6 +20,13 @@
         </view>
       </view>
       <view class="field">
+        <view class="label">怀孕周期:</view>
+        <view class="value" style="display: flex;align-items: center;">
+          <input style="width: 48px;text-align: center;display: inline-block;" type="number" value="{{ model.pregnancy }}" @change="onPregnancyChange">
+          <text style="font-size: 14px;font-weight: 500;vertical-align: 16px;margin-left: 10px;">天</text>
+        </view>
+      </view>
+      <view class="field">
         <view class="label">配种日期:</view>
         <view class="value">
           <picker mode="date" @change="breedingChange" end="{{today}}">
@@ -56,6 +63,7 @@ export default class Index extends wepy.page {
     today: null,
     difference: null,
     model: {
+      pregnancy: 64,
       male_name: null,
       female_name: null,
       breeding_at: null
@@ -89,6 +97,18 @@ export default class Index extends wepy.page {
     },
     onMaleChange(e) {
       this.model.male_name = e.detail.value
+    },
+    onPregnancyChange(e) {
+      var pregnancy = e.detail.value
+
+      if (pregnancy <= 0) {
+        return wx.showToast({
+          icon: 'error',
+          title: '请输入大于零的日期'
+        })
+      }
+
+      this.model.pregnancy = pregnancy
     }
   }
 

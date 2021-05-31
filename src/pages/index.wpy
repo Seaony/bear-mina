@@ -60,9 +60,13 @@
       </button>
 
       <view class="addation" wx:if="{{portals}}">
+        <button open-type="share" class="share">
+          <image class="cover" src="../assets/images/share.svg"></image>
+        </button>
+
         <navigator url="/pages/create" class="btn">
           <text>新增记录</text>
-          <image src="../assets/images/next1.svg"></image>
+          <image class="coverd" src="../assets/images/next1.svg"></image>
         </navigator>
       </view>
     </view>
@@ -130,6 +134,8 @@
         </view>
       </view>
     </view>
+
+    <view wx:if="{{showAlert}}" class="float_badge">添加到 「我的小程序」,使用更方便哦~</view>
   </view>
 </template>
 
@@ -152,6 +158,7 @@ export default class Index extends wepy.page {
 
   data = {
     init: false,
+    showAlert: false,
     portals: false,
     modal: null,
     week: [],
@@ -163,8 +170,7 @@ export default class Index extends wepy.page {
 
   onShareAppMessage () {
     return {
-      title: '',
-      imageUrl: 'https://cdn.765i.com/uploads/1590048984/jG81HjQwLgjDuMRfbDF8ezcxor9NhxAF.jpg'
+      title: '「喵孕」 - 猫咪孕期小助手~'
     }
   }
 
@@ -198,6 +204,7 @@ export default class Index extends wepy.page {
       wx.showLoading()
     }
     request('/eggs').get().then(data => {
+      var firstCheck = this.init ? 1 : 0
       this.portals = data.portals
       this.week = data.week
       this.other = data.other
@@ -206,7 +213,38 @@ export default class Index extends wepy.page {
       this.init = true
       this.$apply()
       wx.hideLoading()
+
+      if (!firstCheck) {
+        this.checkPortal()
+      }
     })
+  }
+
+  checkPortal () {
+    setTimeout(() => {
+      var portalDate = wx.getStorageSync('portal_date')
+
+      if (!portalDate) {
+        return this.showPortalAlert()
+      }
+
+      var day = Date.now() + 60 * 60 * 24 * 1000
+
+      if (portalDate + day < Date.now()) {
+        return this.showPortalAlert()
+      }
+    }, 1000)
+  }
+
+  showPortalAlert () {
+    this.showAlert = true
+    wx.setStorageSync('portal_date', Date.now())
+    this.$apply()
+
+    setTimeout(() => {
+      this.showAlert = false
+      this.$apply()
+    }, 6000)
   }
 
   events = {}
@@ -568,9 +606,35 @@ export default class Index extends wepy.page {
   .addation {
     left: 0;
     width: 100%;
+    display: flex;
     position: fixed;
-    bottom: 2.25rem;
-    text-align: center;
+    bottom: 2.55rem;
+    flex-flow:  row nowrap;
+    justify-content: space-around;
+
+    .share {
+      margin: 0;
+      padding: 0;
+      border: none;
+      padding: 12px 24px;
+      display: inline-block;
+      width: auto;
+      height: auto;
+      line-height: initial;
+      font-size: initial;
+      border-radius: 20px;
+      background: #cca8e9;;
+      box-sizing: border-box;
+      box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #cca8e9;
+      &::after {
+        display: none;
+      }
+      .cover {
+        width: 18px;
+        height: 18px;
+        vertical-align: middle;
+      }
+    }
 
     .btn {
       color: #ffffff;
@@ -582,7 +646,7 @@ export default class Index extends wepy.page {
       display: inline-block;
       box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #71c9ce;
 
-      image {
+      .coverd {
         width: 12px;
         height: 12px;
         margin-left: 4px;
@@ -618,6 +682,30 @@ export default class Index extends wepy.page {
     }
     100% {
       transform: translateY(0);
+    }
+  }
+
+  .float_badge {
+    top: 7px;
+    right: 24px;
+    color: #ffffff;
+    position: fixed;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #71c9ce;
+    &:before{
+      content: '';
+      width:0;
+      height:0;
+      top: -8px;
+      right: 40px;
+      position: absolute;
+      display:inline-block;
+      border-bottom: 8px solid #71c9ce;
+      border-left:6px solid transparent;
+      border-right: 6px solid transparent;
     }
   }
 </style>
