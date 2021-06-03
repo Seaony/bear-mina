@@ -11,12 +11,14 @@
         <view class="label">母猫名称:</view>
         <view class="value">
           <input type="text" @change="onFemaleChange">
+          <image mode="aspectFill" class="avatar" src="{{ model.female_avatar }}" @tap="updateAvatar('female')"/>
         </view>
       </view>
       <view class="field">
         <view class="label">公猫名称:</view>
         <view class="value">
           <input type="text" @change="onMaleChange">
+          <image mode="aspectFill" class="avatar" data-gender="male" src="{{ model.male_avatar }}" @tap="updateAvatar('male')"/>
         </view>
       </view>
       <view class="field">
@@ -65,7 +67,9 @@ export default class Index extends wepy.page {
     model: {
       pregnancy: 64,
       male_name: null,
+      male_avatar: '../assets/images/male_cat.svg',
       female_name: null,
+      female_avatar: '../assets/images/female_cat.svg',
       breeding_at: null
     }
   }
@@ -109,6 +113,34 @@ export default class Index extends wepy.page {
       }
 
       this.model.pregnancy = pregnancy
+    },
+
+    async updateAvatar (gender) {
+      // 选择头像图片
+      let image = await wx.chooseImage({count: 1})
+
+      try {
+        // 获取选择的图片
+        let avatar = image.tempFilePaths[0]
+        // 调用上传图片接口
+        request('/eggs/upload-avatar', {
+          'file_path': avatar
+        }).upload().then(data => {
+          if (data.url) {
+            if (gender === 'female') {
+              this.model.female_avatar = data.url
+            } else {
+              this.model.male_avatar = data.url
+            }
+            this.$apply()
+          }
+        })
+      } catch (err) {
+        wepy.showModal({
+          title: '提示',
+          content: '服务器错误，暂时无法上传图片，可使用默认头像或请联系客服'
+        })
+      }
     }
   }
 
@@ -234,6 +266,8 @@ export default class Index extends wepy.page {
       }
 
       .value {
+        display: flex;
+        align-items: center;
         input {
           height: 1.8rem;
           font-size: 14px;
@@ -242,6 +276,15 @@ export default class Index extends wepy.page {
           border-radius: 8px;
           line-height: 1.8rem;
           border: 1px solid #e7eef7;
+          width: 200px;
+        }
+
+        .avatar {
+          width: 40px;
+          height: 40px;
+          background: #e3fdfd;
+          border-radius: 50px;
+          margin-left: 10px;
         }
 
         picker {

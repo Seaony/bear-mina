@@ -74,7 +74,8 @@
     <view wx:if="{{modal}}" class="drawer" catchtouchmove="true">
       <view class="drawer-header">
         <image class="avatar" src="{{modal.female_avatar}}"></image>
-        <text>{{modal.female_name}}&{{modal.male_name}}</text>
+        <text>{{modal.female_name}} 💗 {{modal.male_name}}</text>
+        <image wx:if="{{ modal.male_avatar }}" class="avatar" src="{{modal.male_avatar}}"></image>
         <view class="right">
           <image src="../assets/images/error.svg" @tap="closeModal" class="close"></image>
         </view>
@@ -102,6 +103,11 @@
         </view>
 
         <view wx:if="{{modal.is_break}}">
+          <view class="cat_number">
+            <repeat for="{{modal.cat_number}}">
+              <image class="kitten" src="../assets/images/kitten.svg"></image>
+            </repeat>
+          </view>
           <view class="desc">小生命已经破壳而出啦~，总孕期为</view>
           <view class="day">
             <text class="t">{{modal.during}}</text>
@@ -109,7 +115,6 @@
           </view>
           <view class="cracked_at">{{modal.breeding_at}} - {{modal.cracked_at}}</view>
         </view>
-
 
         <view class="tips">
           <view class="tips_header">
@@ -228,7 +233,7 @@ export default class Index extends wepy.page {
         return this.showPortalAlert()
       }
 
-      var day = Date.now() + 60 * 60 * 24 * 1000
+      var day = 60 * 60 * 24 * 1000
 
       if (portalDate + day < Date.now()) {
         return this.showPortalAlert()
@@ -351,8 +356,7 @@ export default class Index extends wepy.page {
       .avatar {
         width: 24px;
         height: 24px;
-        padding: 4px;
-        margin-right: 6px;
+        margin: 0 4px;
         background: #e3fdfd;
         border-radius: 50px;
 
@@ -389,6 +393,15 @@ export default class Index extends wepy.page {
         font-weight: 500;
         text-align: center;
         margin-bottom: 24px;
+      }
+
+      .cat_number {
+        text-align: center;
+        justify-content: center;
+        image {
+          width: 20px;
+          height: 20px;
+        }
       }
 
       .day {
@@ -539,9 +552,8 @@ export default class Index extends wepy.page {
     box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 1px 0px;
 
     .avatar {
-      width: 32px;
-      height: 32px;
-      padding: 8px;
+      width: 40px;
+      height: 40px;
       background: #e3fdfd;
       border-radius: 50px;
     }
@@ -582,6 +594,17 @@ export default class Index extends wepy.page {
       image {
         width: 32px;
         height: 32px;
+        display:flex;
+        justify-content: center;
+        margin: 2px auto;
+      }
+
+      text {
+        display:flex;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: #71c9ce;
       }
     }
   }
