@@ -255,7 +255,6 @@ export default class Index extends wepy.page {
   events = {}
 
   onLoad() {
-    wx.showLoading()
     var self = this
     if (!wx.getStorageSync('token')) {
       wx.login({
