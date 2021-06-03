@@ -10,9 +10,11 @@
     <text wx:if="{{model.countdown > 0}}">{{model.countdown}} 天</text>
     <text wx:if="{{model.countdown < 0}}" class="danger">{{model.countdown*-1}} 天</text>
   </span>
-  <span class="break" wx:else>
-    <image src="../assets/images/birthday-and-party.svg"></image>
-  </span>
+  <view class="break" wx:else>
+    <image class="field-top" src="../assets/images/birthday-and-party.svg"></image>
+    <text wx:if="{{model.passday == 0}}">今日</text>
+    <text wx:if="{{model.passday > 0}}">{{model.passday}} 天</text>
+  </view>
 </template>
 
 <script>
@@ -61,8 +63,5 @@ export default class Card extends wepy.component {
         }
       }
     }
-  }
-  .break {
-    image {}
   }
 </style>

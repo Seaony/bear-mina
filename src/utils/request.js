@@ -58,12 +58,36 @@ class WxRequest {
       if (result.statusCode === 401) {
         wx.setStorageSync('token', null)
       }
+      // wx.uploadFile返回的data只有string类型，不会根据content-type自动转object
+      if (typeof result.data === 'string' && result.data !== "") {
+        result.data = JSON.parse(result.data)
+      }
       if (result.statusCode >= 200 && result.statusCode < 400) {
         resolve(result.data)
       } else {
         wx.showToast({ title: result.data.message, icon: 'none' })
         reject(result.data)
       }
+    })
+  }
+
+  upload() {
+    var that = this
+    return new Promise((resolve, reject) => {
+      wx.uploadFile(
+        Object.assign({}, this.defaultOptions, {
+          filePath: this.defaultOptions.data.file_path,
+          name: this.defaultOptions.data.name ? this.defaultOptions.data.name : 'image',
+          formData: this.defaultOptions.data,
+          success: function(res) {
+            that
+              .success(res)
+              .then((data) => resolve(data))
+              .catch((error) => reject(error))
+          },
+          complete: function(res) {}
+        })
+      )
     })
   }
 }
