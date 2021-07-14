@@ -103,10 +103,22 @@
         </view>
 
         <view wx:if="{{modal.is_break}}">
-          <view class="cat_number">
+          <view class="cat_number" wx:if="{{!showCatNumberInput && modal.cat_number !== 0}}">
             <repeat for="{{modal.cat_number}}">
               <image class="kitten" src="../assets/images/kitten.svg"></image>
             </repeat>
+          </view>
+          <view wx:else class="actions center">
+            <view wx:if="{{!showCatNumberInput}}" class="go_edit" @tap="onEditCatNumber">
+              <text>补充小猫数量</text>
+              <image src="../assets/images/click.svg"></image>
+            </view>
+            <view wx:else class="edit">
+              <input type="number" @input="onCatNumberChange">
+              <image src="../assets/images/confirm.svg" @tap="updateCatNumber"></image>
+              <image src="../assets/images/cancel.svg" @tap="onCancelCatNumberChange"></image>
+            </view>
+
           </view>
           <view class="desc">小生命已经破壳而出啦~，总孕期为</view>
           <view class="day">
@@ -140,13 +152,23 @@
       </view>
     </view>
 
+    <!--添加小程序引导-->
     <view wx:if="{{showAlert}}" class="float_badge">添加到 「我的小程序」,使用更方便哦~</view>
+
+    <!-- 广告展示 -->
+    <view class="mask" hidden="{{!showAd}}" catchtouchmove="true">
+      <view class="AdView-mask">
+        <image class="mask-img" mode="widthFix" src="{{ adInfo.image }}" show-menu-by-longpress="true"></image>
+        <image class="close-mask" bindtap="hiddenMsak" src="../assets/images/error.svg"></image>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import wepy from 'wepy'
 import request from '@/utils/request'
+import tools from '@/utils/tools'
 import Card from '@/components/EggCard'
 
 export default class Index extends wepy.page {
@@ -168,7 +190,10 @@ export default class Index extends wepy.page {
     modal: null,
     week: [],
     other: [],
-    history: []
+    history: [],
+    showAd: false,
+    adInfo: null,
+    showCatNumberInput: false
   }
 
   computed = {}
@@ -186,6 +211,7 @@ export default class Index extends wepy.page {
     },
     closeModal() {
       this.modal = null
+      this.showCatNumberInput = false
       this.$apply()
     },
     async delCurrent() {
@@ -201,6 +227,20 @@ export default class Index extends wepy.page {
           }, 1000)
         }
       })
+    },
+    async updateCatNumber() {
+      await request(`/eggs/${this.modal.id}`, {
+        'cat_number': this.modal.cat_number
+      }).put()
+      var that = this
+      this.history.forEach(function (item) {
+        if (item.id === that.modal.id) {
+          item.cat_number = that.modal.cat_number
+          return true
+        }
+      })
+      this.showCatNumberInput = false
+      this.$apply()
     }
   }
 
@@ -267,6 +307,7 @@ export default class Index extends wepy.page {
         }
       })
     } else {
+      this.getAd()
       this.getItems()
     }
   }
@@ -280,6 +321,45 @@ export default class Index extends wepy.page {
     if (this.init) {
       this.getItems()
     }
+  }
+
+  // 首屏广告蒙版
+  getAd() {
+    // @TODO: 缓存数据，减少请求（体量较大后优先优化）
+    request('/ad').post().then(data => {
+      // 通知开启且在有效期内
+      if (data.status === 1 && tools.strtotime(data.start_time) < Date.now() && tools.strtotime(data.end_time) > Date.now()) {
+        var lastShowDate = wx.getStorageSync('home_ad_date')
+        var displayTimes = wx.getStorageSync('home_ad_times')
+        // 展示次数及展示间隔都满足条件才继续展示
+        if (displayTimes < data.display_times && (lastShowDate + data.display_interval * 60 * 60 * 24 * 1000) < Date.now()) {
+          wx.setStorageSync('home_ad_date', Date.now())
+          this.showAd = true
+          this.adInfo = data
+          this.$apply()
+        }
+      }
+    })
+  }
+  // 点击隐藏弹出蒙版
+  hiddenMsak() {
+    this.showAd = false
+    this.$apply()
+  }
+
+  onEditCatNumber() {
+    this.showCatNumberInput = true
+    this.$apply()
+  }
+
+  onCatNumberChange(e) {
+    this.modal.cat_number = parseInt(e.detail.value)
+  }
+
+  onCancelCatNumberChange() {
+    this.modal.cat_number = 0
+    this.showCatNumberInput = false
+    this.$apply()
   }
 }
 </script>
@@ -330,7 +410,6 @@ export default class Index extends wepy.page {
     height: auto;
     z-index: 1100;
     position: fixed;
-    overflow: scroll;
     overflow: hidden;
     animation: up .3s;
     background: #ffffff;
@@ -498,6 +577,38 @@ export default class Index extends wepy.page {
           width: 12px;
           height: 12px;
           vertical-align: -1.5px;
+        }
+
+        .go_edit {
+          color: #009788;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 29px;
+          height: 30px;
+        }
+
+        .edit {
+          height: 30px;
+
+          input {
+            width: 52px;
+            height: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid #e7eef7;
+            padding: 0 10px;
+            margin-left: 24px;
+            display: inline-block;
+            vertical-align:middle;
+          }
+
+          image {
+            width: 12px;
+            height: 12px;
+            vertical-align:middle;
+            padding-left: 10px;
+          }
         }
       }
     }
@@ -730,4 +841,41 @@ export default class Index extends wepy.page {
       border-right: 6px solid transparent;
     }
   }
+
+  /* 广告弹窗 */
+  .mask {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 99998;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mask .AdView-mask {
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    width: 332px;
+    margin: 10px auto;
+    position: relative;
+    top: -40px;
+  }
+
+  .mask .AdView-mask .mask-img {
+    width: 80%;
+  }
+
+  .mask .AdView-mask .close-mask {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    bottom: -80px;
+    left: 146px;
+  }
+
 </style>
