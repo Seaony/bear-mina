@@ -10,7 +10,7 @@
       <view class="field">
         <view class="label">小猫数量 (选填):</view>
         <view class="value">
-          <input type="number" @change="onCatNumberChange">
+          <input type="number" @input="onCatNumberChange">
         </view>
       </view>
       <view class="field">

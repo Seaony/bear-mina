@@ -60,9 +60,13 @@
       </button>
 
       <view class="addation" wx:if="{{portals}}">
+        <button open-type="share" class="share">
+          <image class="cover" src="../assets/images/share.svg"></image>
+        </button>
+
         <navigator url="/pages/create" class="btn">
           <text>新增记录</text>
-          <image src="../assets/images/next1.svg"></image>
+          <image class="coverd" src="../assets/images/next1.svg"></image>
         </navigator>
       </view>
     </view>
@@ -70,7 +74,8 @@
     <view wx:if="{{modal}}" class="drawer" catchtouchmove="true">
       <view class="drawer-header">
         <image class="avatar" src="{{modal.female_avatar}}"></image>
-        <text>{{modal.female_name}}&{{modal.male_name}}</text>
+        <text>{{modal.female_name}} 💗 {{modal.male_name}}</text>
+        <image wx:if="{{ modal.male_avatar }}" class="avatar" src="{{modal.male_avatar}}"></image>
         <view class="right">
           <image src="../assets/images/error.svg" @tap="closeModal" class="close"></image>
         </view>
@@ -98,6 +103,23 @@
         </view>
 
         <view wx:if="{{modal.is_break}}">
+          <view class="cat_number" wx:if="{{!showCatNumberInput && modal.cat_number !== 0}}">
+            <repeat for="{{modal.cat_number}}">
+              <image class="kitten" src="../assets/images/kitten.svg"></image>
+            </repeat>
+          </view>
+          <view wx:else class="actions center">
+            <view wx:if="{{!showCatNumberInput}}" class="go_edit" @tap="onEditCatNumber">
+              <text>补充小猫数量</text>
+              <image src="../assets/images/click.svg"></image>
+            </view>
+            <view wx:else class="edit">
+              <input type="number" @input="onCatNumberChange">
+              <image src="../assets/images/confirm.svg" @tap="updateCatNumber"></image>
+              <image src="../assets/images/cancel.svg" @tap="onCancelCatNumberChange"></image>
+            </view>
+
+          </view>
           <view class="desc">小生命已经破壳而出啦~，总孕期为</view>
           <view class="day">
             <text class="t">{{modal.during}}</text>
@@ -105,7 +127,6 @@
           </view>
           <view class="cracked_at">{{modal.breeding_at}} - {{modal.cracked_at}}</view>
         </view>
-
 
         <view class="tips">
           <view class="tips_header">
@@ -130,12 +151,24 @@
         </view>
       </view>
     </view>
+
+    <!--添加小程序引导-->
+    <view wx:if="{{showAlert}}" class="float_badge">添加到 「我的小程序」,使用更方便哦~</view>
+
+    <!-- 广告展示 -->
+    <view class="mask" hidden="{{!showAd}}" catchtouchmove="true">
+      <view class="AdView-mask">
+        <image class="mask-img" mode="widthFix" src="{{ adInfo.image }}" show-menu-by-longpress="true"></image>
+        <image class="close-mask" bindtap="hiddenMsak" src="../assets/images/error.svg"></image>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import wepy from 'wepy'
 import request from '@/utils/request'
+import tools from '@/utils/tools'
 import Card from '@/components/EggCard'
 
 export default class Index extends wepy.page {
@@ -152,19 +185,22 @@ export default class Index extends wepy.page {
 
   data = {
     init: false,
+    showAlert: false,
     portals: false,
     modal: null,
     week: [],
     other: [],
-    history: []
+    history: [],
+    showAd: false,
+    adInfo: null,
+    showCatNumberInput: false
   }
 
   computed = {}
 
   onShareAppMessage () {
     return {
-      title: '',
-      imageUrl: 'https://cdn.765i.com/uploads/1590048984/jG81HjQwLgjDuMRfbDF8ezcxor9NhxAF.jpg'
+      title: '「喵孕」 - 猫咪孕期小助手~'
     }
   }
 
@@ -175,6 +211,7 @@ export default class Index extends wepy.page {
     },
     closeModal() {
       this.modal = null
+      this.showCatNumberInput = false
       this.$apply()
     },
     async delCurrent() {
@@ -190,6 +227,20 @@ export default class Index extends wepy.page {
           }, 1000)
         }
       })
+    },
+    async updateCatNumber() {
+      await request(`/eggs/${this.modal.id}`, {
+        'cat_number': this.modal.cat_number
+      }).put()
+      var that = this
+      this.history.forEach(function (item) {
+        if (item.id === that.modal.id) {
+          item.cat_number = that.modal.cat_number
+          return true
+        }
+      })
+      this.showCatNumberInput = false
+      this.$apply()
     }
   }
 
@@ -198,6 +249,7 @@ export default class Index extends wepy.page {
       wx.showLoading()
     }
     request('/eggs').get().then(data => {
+      var firstCheck = this.init ? 1 : 0
       this.portals = data.portals
       this.week = data.week
       this.other = data.other
@@ -206,13 +258,43 @@ export default class Index extends wepy.page {
       this.init = true
       this.$apply()
       wx.hideLoading()
+
+      if (!firstCheck) {
+        this.checkPortal()
+      }
     })
+  }
+
+  checkPortal () {
+    setTimeout(() => {
+      var portalDate = wx.getStorageSync('portal_date')
+
+      if (!portalDate) {
+        return this.showPortalAlert()
+      }
+
+      var day = 60 * 60 * 24 * 1000
+
+      if (portalDate + day < Date.now()) {
+        return this.showPortalAlert()
+      }
+    }, 1000)
+  }
+
+  showPortalAlert () {
+    this.showAlert = true
+    wx.setStorageSync('portal_date', Date.now())
+    this.$apply()
+
+    setTimeout(() => {
+      this.showAlert = false
+      this.$apply()
+    }, 6000)
   }
 
   events = {}
 
   onLoad() {
-    wx.showLoading()
     var self = this
     if (!wx.getStorageSync('token')) {
       wx.login({
@@ -225,6 +307,7 @@ export default class Index extends wepy.page {
         }
       })
     } else {
+      this.getAd()
       this.getItems()
     }
   }
@@ -238,6 +321,45 @@ export default class Index extends wepy.page {
     if (this.init) {
       this.getItems()
     }
+  }
+
+  // 首屏广告蒙版
+  getAd() {
+    // @TODO: 缓存数据，减少请求（体量较大后优先优化）
+    request('/ad').post().then(data => {
+      // 通知开启且在有效期内
+      if (data.status === 1 && tools.strtotime(data.start_time) < Date.now() && tools.strtotime(data.end_time) > Date.now()) {
+        var lastShowDate = wx.getStorageSync('home_ad_date')
+        var displayTimes = wx.getStorageSync('home_ad_times')
+        // 展示次数及展示间隔都满足条件才继续展示
+        if (displayTimes < data.display_times && (lastShowDate + data.display_interval * 60 * 60 * 24 * 1000) < Date.now()) {
+          wx.setStorageSync('home_ad_date', Date.now())
+          this.showAd = true
+          this.adInfo = data
+          this.$apply()
+        }
+      }
+    })
+  }
+  // 点击隐藏弹出蒙版
+  hiddenMsak() {
+    this.showAd = false
+    this.$apply()
+  }
+
+  onEditCatNumber() {
+    this.showCatNumberInput = true
+    this.$apply()
+  }
+
+  onCatNumberChange(e) {
+    this.modal.cat_number = parseInt(e.detail.value)
+  }
+
+  onCancelCatNumberChange() {
+    this.modal.cat_number = 0
+    this.showCatNumberInput = false
+    this.$apply()
   }
 }
 </script>
@@ -288,7 +410,6 @@ export default class Index extends wepy.page {
     height: auto;
     z-index: 1100;
     position: fixed;
-    overflow: scroll;
     overflow: hidden;
     animation: up .3s;
     background: #ffffff;
@@ -313,8 +434,7 @@ export default class Index extends wepy.page {
       .avatar {
         width: 24px;
         height: 24px;
-        padding: 4px;
-        margin-right: 6px;
+        margin: 0 4px;
         background: #e3fdfd;
         border-radius: 50px;
 
@@ -351,6 +471,15 @@ export default class Index extends wepy.page {
         font-weight: 500;
         text-align: center;
         margin-bottom: 24px;
+      }
+
+      .cat_number {
+        text-align: center;
+        justify-content: center;
+        image {
+          width: 20px;
+          height: 20px;
+        }
       }
 
       .day {
@@ -449,6 +578,38 @@ export default class Index extends wepy.page {
           height: 12px;
           vertical-align: -1.5px;
         }
+
+        .go_edit {
+          color: #009788;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 29px;
+          height: 30px;
+        }
+
+        .edit {
+          height: 30px;
+
+          input {
+            width: 52px;
+            height: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid #e7eef7;
+            padding: 0 10px;
+            margin-left: 24px;
+            display: inline-block;
+            vertical-align:middle;
+          }
+
+          image {
+            width: 12px;
+            height: 12px;
+            vertical-align:middle;
+            padding-left: 10px;
+          }
+        }
       }
     }
   }
@@ -501,9 +662,8 @@ export default class Index extends wepy.page {
     box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 1px 0px;
 
     .avatar {
-      width: 32px;
-      height: 32px;
-      padding: 8px;
+      width: 40px;
+      height: 40px;
       background: #e3fdfd;
       border-radius: 50px;
     }
@@ -544,6 +704,17 @@ export default class Index extends wepy.page {
       image {
         width: 32px;
         height: 32px;
+        display:flex;
+        justify-content: center;
+        margin: 2px auto;
+      }
+
+      text {
+        display:flex;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: #71c9ce;
       }
     }
   }
@@ -568,9 +739,35 @@ export default class Index extends wepy.page {
   .addation {
     left: 0;
     width: 100%;
+    display: flex;
     position: fixed;
-    bottom: 2.25rem;
-    text-align: center;
+    bottom: 2.55rem;
+    flex-flow:  row nowrap;
+    justify-content: space-around;
+
+    .share {
+      margin: 0;
+      padding: 0;
+      border: none;
+      padding: 12px 24px;
+      display: inline-block;
+      width: auto;
+      height: auto;
+      line-height: initial;
+      font-size: initial;
+      border-radius: 20px;
+      background: #cca8e9;;
+      box-sizing: border-box;
+      box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #cca8e9;
+      &::after {
+        display: none;
+      }
+      .cover {
+        width: 18px;
+        height: 18px;
+        vertical-align: middle;
+      }
+    }
 
     .btn {
       color: #ffffff;
@@ -582,7 +779,7 @@ export default class Index extends wepy.page {
       display: inline-block;
       box-shadow: 0.08533rem 0.21333rem 0.64rem 0 #71c9ce;
 
-      image {
+      .coverd {
         width: 12px;
         height: 12px;
         margin-left: 4px;
@@ -620,4 +817,65 @@ export default class Index extends wepy.page {
       transform: translateY(0);
     }
   }
+
+  .float_badge {
+    top: 7px;
+    right: 24px;
+    color: #ffffff;
+    position: fixed;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #71c9ce;
+    &:before{
+      content: '';
+      width:0;
+      height:0;
+      top: -8px;
+      right: 40px;
+      position: absolute;
+      display:inline-block;
+      border-bottom: 8px solid #71c9ce;
+      border-left:6px solid transparent;
+      border-right: 6px solid transparent;
+    }
+  }
+
+  /* 广告弹窗 */
+  .mask {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 99998;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mask .AdView-mask {
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    width: 332px;
+    margin: 10px auto;
+    position: relative;
+    top: -40px;
+  }
+
+  .mask .AdView-mask .mask-img {
+    width: 80%;
+  }
+
+  .mask .AdView-mask .close-mask {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    bottom: -80px;
+    left: 146px;
+  }
+
 </style>

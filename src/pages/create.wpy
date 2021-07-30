@@ -11,12 +11,21 @@
         <view class="label">母猫名称:</view>
         <view class="value">
           <input type="text" @change="onFemaleChange">
+          <image mode="aspectFill" class="avatar" src="{{ model.female_avatar }}" @tap="uploadTap('female')"/>
         </view>
       </view>
       <view class="field">
         <view class="label">公猫名称:</view>
         <view class="value">
           <input type="text" @change="onMaleChange">
+          <image mode="aspectFill" class="avatar" data-gender="male" src="{{ model.male_avatar }}" @tap="uploadTap('male')"/>
+        </view>
+      </view>
+      <view class="field">
+        <view class="label">怀孕周期:</view>
+        <view class="value" style="display: flex;align-items: center;">
+          <input style="width: 48px;text-align: center;display: inline-block;" type="number" value="{{ model.pregnancy }}" @change="onPregnancyChange">
+          <text style="font-size: 14px;font-weight: 500;vertical-align: 16px;margin-left: 10px;">天</text>
         </view>
       </view>
       <view class="field">
@@ -37,18 +46,33 @@
       </view>
     </view>
   </view>
+  <view class="cropper-panel" wx:if="{{showCropper}}">
+    <cropper :options="cropperOpt" @beforeImageLoad="bl"></cropper>
+    <view class="image-notice">请使用含有猫咪的图片~</view>
+    <view class="image-notice">如识别异常请尝试调整裁剪部分或跳过</view>
+    <view class="operate">
+      <button class="cancel" @tap="cancel">取消</button>
+      <button @tap="getCropperImage">确认</button>
+    </view>
+  </view>
 </template>
 
 <script>
 import wepy from 'wepy'
 import request from '@/utils/request'
+import Cropper from '@/components/wepy-com-cropper'
+const device = wx.getSystemInfoSync()
+const width = device.windowWidth
+const height = device.windowHeight - 200
 
 export default class Index extends wepy.page {
   config = {
     navigationBarTitleText: '新增记录'
   }
 
-  components = {}
+  components = {
+    cropper: Cropper
+  }
 
   mixins = []
 
@@ -56,9 +80,27 @@ export default class Index extends wepy.page {
     today: null,
     difference: null,
     model: {
+      pregnancy: 64,
       male_name: null,
+      male_avatar: 'https://m1-1253159997.image.myqcloud.com/images/UnNNx2qg8X0oprnzHFwdUBplO4Ev5eWYmxbRaC9l.jpeg',
       female_name: null,
+      female_avatar: 'https://m1-1253159997.image.myqcloud.com/images/dX2GQGfuBIV5uPOjk11OdPE5Qx3xJEhFv8ROonZp.jpeg',
       breeding_at: null
+    },
+    selectedGender: null,
+    showCropper: false,
+    cropperOpt: {
+      width,
+      height,
+      scale: 2.5,
+      zoom: 8,
+      cut: {
+        x: (width - 200) / 2,
+        y: (height - 200) / 2,
+        width: 200,
+        height: 200
+      },
+      show: false
     }
   }
 
@@ -89,6 +131,63 @@ export default class Index extends wepy.page {
     },
     onMaleChange(e) {
       this.model.male_name = e.detail.value
+    },
+    onPregnancyChange(e) {
+      var pregnancy = e.detail.value
+
+      if (pregnancy <= 0) {
+        return wx.showToast({
+          icon: 'error',
+          title: '请输入大于零的日期'
+        })
+      }
+
+      this.model.pregnancy = pregnancy
+    },
+
+    uploadTap (gender) {
+      wx.chooseImage({
+        count: 1,
+        sizeType: ['compressed'], // 只使用压缩图，加快文件上传速度及模型识别速度。另一方面，识别对于图片质量并无要求
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const src = res.tempFilePaths[0]
+          //  获取裁剪图片资源后，给data添加src属性及其值
+          this.showCropper = true
+          this.selectedGender = gender
+          this.$apply()
+          this.$invoke('cropper', 'pushOrigin', src)
+        }
+      })
+    },
+    cancel () {
+      this.showCropper = false
+      this.$apply()
+    },
+    getCropperImage () {
+      this.$invoke('cropper', 'getCropperImage').then((src) => {
+        wepy.showLoading({
+          title: '图片识别中...'
+        })
+        // 调用上传图片接口
+        request('/eggs/upload-avatar', {
+          'file_path': src
+        }).upload().then(data => {
+          if (data.url) {
+            if (this.selectedGender === 'female') {
+              this.model.female_avatar = data.url
+            } else if (this.selectedGender === 'male') {
+              this.model.male_avatar = data.url
+            }
+            this.showCropper = false
+            this.$apply()
+          }
+          wepy.hideLoading()
+        })
+      }).catch(err => {
+        console.log('获取图片地址失败，请稍后重试', err)
+        wepy.hideLoading()
+      })
     }
   }
 
@@ -214,6 +313,8 @@ export default class Index extends wepy.page {
       }
 
       .value {
+        display: flex;
+        align-items: center;
         input {
           height: 1.8rem;
           font-size: 14px;
@@ -222,6 +323,15 @@ export default class Index extends wepy.page {
           border-radius: 8px;
           line-height: 1.8rem;
           border: 1px solid #e7eef7;
+          width: 200px;
+        }
+
+        .avatar {
+          width: 40px;
+          height: 40px;
+          background: #e3fdfd;
+          border-radius: 50px;
+          margin-left: 10px;
         }
 
         picker {
@@ -243,6 +353,40 @@ export default class Index extends wepy.page {
             vertical-align: -4.5px;
           }
         }
+      }
+    }
+  }
+
+  .cropper-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: black;
+    padding-bottom: 300px;
+    z-index: 1000;
+
+    .image-notice {
+      text-align: center;
+      text-justify: auto;
+      color: #ffffff;
+    }
+
+    .operate {
+      position: fixed;
+      bottom: 100px;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      z-index: 1001;
+
+      button {
+        width: 150px;
+        background: #70C9CD;
+        color: #ffffff;
+      }
+
+      .cancel {
+        background: #4d555f;
       }
     }
   }
